@@ -1,0 +1,22 @@
+# Core dependencies for Silhouette-Match Video Processor
+
+# Google Generative AI (Gemini) - NEW OFFICIAL SDK
+google-genai>=0.2.0
+
+# Video processing
+opencv-python>=4.8.0
+
+# Image processing
+Pillow>=10.0.0
+
+# Environment variable management
+python-dotenv>=1.0.0
+
+# Progress tracking (optional but useful)
+tqdm>=4.66.0
+
+# Telegram notifications (optional)
+python-telegram-bot>=20.0
+
+# OCR for timestamp extraction from frames
+easyocr>=1.7.0
