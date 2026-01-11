@@ -82,13 +82,13 @@ class ConsoleNotifier(BaseNotifier):
                 color = "\033[90m"  # Gray
                 reset = "\033[0m"
             
-            # Include camera timestamp if available
             if camera_timestamp:
                 print(f"{color}[{filename:40}] | {timestamp} | 📷 {camera_timestamp} | {status}{reset}")
             else:
                 print(f"{color}[{filename:40}] | {timestamp} | {status}{reset}")
             
-            if self.verbose:
+            # Always show reasoning for matches
+            if is_match or self.verbose:
                 reasoning_vi = detection_result.get("reasoning_vi", "")
                 print(f"  └─ {reasoning}")
                 if reasoning_vi:
@@ -124,19 +124,15 @@ class ConsoleNotifier(BaseNotifier):
                 timestamp = match.get("timestamp", "00:00:00")
                 camera_timestamp = match.get("camera_timestamp", "")
                 confidence = match.get("confidence", 0)
-                reasoning = match.get("reasoning", "")
-                reasoning_vi = match.get("reasoning_vi", "")
                 
                 if camera_timestamp:
                     print(f"{i:2d}. [{filename:40}] | {timestamp} | 📷 {camera_timestamp} | {confidence}% confidence")
                 else:
                     print(f"{i:2d}. [{filename:40}] | {timestamp} | {confidence}% confidence")
-                print(f"    └─ {reasoning}")
-                if reasoning_vi:
-                    print(f"    └─ 🇻🇳 {reasoning_vi}")
             print("-" * 80)
         else:
             print("\nNo matches found.")
+
         
         print()
     
@@ -213,11 +209,35 @@ class TelegramNotifier(BaseNotifier):
             print(f"[Telegram] Error sending message: {e}")
     
     def send(self, detection_result: Dict[str, Any]):
-        """Disabled for Telegram to send only a single summary at the end."""
-        pass
+        """Send a real-time detection alert with bilingual reasoning via Telegram."""
+        if not detection_result.get("match", False):
+            return
+
+        filename = detection_result.get("video_filename", "Unknown")
+        timestamp = detection_result.get("timestamp", "00:00:00")
+        camera_time = detection_result.get("camera_timestamp", "")
+        confidence = detection_result.get("confidence", 0)
+        reasoning = detection_result.get("reasoning", "No reasoning provided")
+        reasoning_vi = detection_result.get("reasoning_vi", "")
+
+        message = "🎯 *DETECTION ALERT*\n"
+        message += "━━━━━━━━━━━━━━━━━━━━\n"
+        message += f"📹 *Video:* `{filename}`\n"
+        
+        time_info = timestamp
+        if camera_time:
+            time_info = f"{timestamp} (📷 {camera_time})"
+        
+        message += f"⏰ *Time:* `{time_info}`\n"
+        message += f"✅ *Confidence:* `{confidence}%` \n\n"
+        message += f"💡 *Details:* {reasoning}\n"
+        if reasoning_vi:
+            message += f"🇻🇳 *Chi tiết:* {reasoning_vi}\n"
+        
+        self._send_message_sync(message)
     
     def send_summary(self, summary: Dict[str, Any]):
-        """Send a single detailed summary via Telegram including all detections."""
+        """Send a concise summary of all detections via Telegram (no reasoning)."""
         total_videos = summary.get("total_videos", 0)
         total_frames = summary.get("total_frames_analyzed", 0)
         total_matches = summary.get("total_matches", 0)
@@ -233,43 +253,36 @@ class TelegramNotifier(BaseNotifier):
         message += f"⏱ *Time:* `{self._format_duration(processing_time)}` \n"
         
         if match_list:
-            message += "\n🔍 *DETECTION DETAILS:*\n"
+            message += "\n📋 *LIST OF DETECTIONS:*\n"
             message += "━━━━━━━━━━━━━━━━━━━━\n"
             
-            # Group by video filename to make it cleaner
+            # Simple list without reasoning to keep summary short
             current_video = ""
             for i, match in enumerate(match_list, 1):
                 filename = match.get("video_filename", "Unknown")
                 timestamp = match.get("timestamp", "00:00:00")
                 camera_time = match.get("camera_timestamp", "")
                 confidence = match.get("confidence", 0)
-                reasoning = match.get("reasoning", "")
-                reasoning_vi = match.get("reasoning_vi", "")
                 
-                # New video header
                 if filename != current_video:
-                    message += f"\n🎬 *Video:* `{filename}`\n"
+                    message += f"\n🎬 `{filename}`\n"
                     current_video = filename
                 
-                # Detection line
                 time_info = timestamp
                 if camera_time:
                     time_info = f"{timestamp} (📷 {camera_time})"
                 
-                message += f"📍 *Match #{i}* | `{time_info}` | `{confidence}%` \n"
-                message += f"💡 {reasoning}\n"
-                if reasoning_vi:
-                    message += f"🇻🇳 {reasoning_vi}\n"
-                message += "────────────────────\n"
+                message += f"• {i}. `{time_info}` | `{confidence}%` \n"
                 
-                # Check for Telegram limit (4096 chars) - break if getting close
-                if len(message) > 3500:
-                    message += "\n⚠️ *... (Truncated due to length)*"
+                # Length protection
+                if len(message) > 3800:
+                    message += "\n⚠️ *... (Truncated)*"
                     break
         else:
-            message += "\n❌ *No human figures detected in these videos.*"
+            message += "\n❌ *No human figures detected.*"
         
         self._send_message_sync(message)
+
 
     
     @staticmethod

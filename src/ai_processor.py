@@ -169,11 +169,14 @@ What to IGNORE:
 - Environmental elements
 
 Analysis Rules:
-1. ONLY match if you see a clear HUMAN FIGURE/SHADOW with similar body proportions
-2. The reference is a SHADOW - look for similar human shadows in the video
-3. Do NOT match objects, plants, or non-human shapes
-4. Focus on skeletal structure: head → shoulders → torso → legs
-5. Low-light/infrared footage shows humans as dark silhouettes against lighter backgrounds
+1. FOCUS ON CENTER: Prioritize human figures in the central 60% of the frame (the middle 6/10 region).
+2. HIGH PRIORITY LANDMARK: Pay special attention to a **bright/glowing plant or bush** visible in the frame. Detections of a human figure standing near or behind this plant are of the highest interest.
+3. IGNORE DISTANT/SMALL: Ignore figures that are too far away or appear very small (less than 10% of frame height).
+4. ONLY match if you see a clear HUMAN FIGURE/SHADOW with similar body proportions.
+5. The reference is a SHADOW - look for similar human shadows in the video.
+6. Do NOT match objects, plants, or non-human shapes.
+7. Focus on skeletal structure: head → shoulders → torso → legs.
+8. Low-light/infrared footage shows humans as dark silhouettes.
 
 Response Format (JSON only):
 {
@@ -216,11 +219,14 @@ What to IGNORE:
 - Shadows that don't clearly show human form
 
 Detection Rules:
-1. Return match=true if you see ANY clear human figure/shadow
-2. Focus on body structure: head → shoulders → torso → legs
-3. Low-light/infrared footage shows humans as dark silhouettes
-4. Even partial human figures count if body parts are identifiable
-5. Multiple humans = still return true (any human detected)
+1. FOCUS ON CENTER: Focus your analysis on the central 60% of the frame (about 6/10ths of the width and height).
+2. HIGH PRIORITY LANDMARK: There is a **prominent bright/glowing plant or bush** in the frame. You are specifically looking for human silhouettes appearing **around, next to, or behind this bright plant**.
+3. IGNORE MARGINS: Figures at the extreme edges of the frame should be treated with lower priority or ignored unless they move towards the center.
+4. IGNORE DISTANT: Do not detect very small or distant figures that appear as tiny specs (figures should be at least 10% of frame height).
+5. Return match=true if you see ANY clear human figure/shadow in the priority zone or near the landmark.
+6. Focus on body structure: head → shoulders → torso → legs.
+7. Low-light/infrared footage shows humans as dark silhouettes.
+8. Multi-person detection is supported (any human counts).
 
 Response Format (JSON only):
 {
