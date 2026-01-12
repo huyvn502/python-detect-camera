@@ -211,7 +211,6 @@ class TelegramNotifier(BaseNotifier):
     def _send_photo_sync(self, photo_path: str, caption: str):
         """Send photo with caption synchronously."""
         import os
-        import asyncio
         
         # Telegram caption limit is 1024 characters
         if len(caption) > 1024:
@@ -219,17 +218,27 @@ class TelegramNotifier(BaseNotifier):
         
         print(f"[Telegram] Sending photo: {photo_path} (exists: {os.path.exists(photo_path)})")
         
-        async def _send():
-            with open(photo_path, 'rb') as photo:
-                await self.bot.send_photo(
-                    chat_id=self.chat_id,
-                    photo=photo,
-                    caption=caption,
-                    parse_mode='Markdown'
-                )
-        
         try:
-            asyncio.run(_send())
+            # Get or create event loop (reuse existing loop)
+            try:
+                loop = self.asyncio.get_event_loop()
+                if loop.is_closed():
+                    loop = self.asyncio.new_event_loop()
+                    self.asyncio.set_event_loop(loop)
+            except RuntimeError:
+                loop = self.asyncio.new_event_loop()
+                self.asyncio.set_event_loop(loop)
+            
+            # Send photo
+            with open(photo_path, 'rb') as photo:
+                loop.run_until_complete(
+                    self.bot.send_photo(
+                        chat_id=self.chat_id,
+                        photo=photo,
+                        caption=caption,
+                        parse_mode='Markdown'
+                    )
+                )
             print(f"[Telegram] Photo sent successfully!")
         except Exception as e:
             print(f"[Telegram] Error sending photo: {e}")
@@ -239,6 +248,11 @@ class TelegramNotifier(BaseNotifier):
     def send(self, detection_result: Dict[str, Any]):
         """Send a real-time detection alert with bilingual reasoning via Telegram."""
         if not detection_result.get("match", False):
+            return
+        
+        # Only send Telegram notifications for high confidence detections
+        confidence = detection_result.get("confidence", 0)
+        if confidence <= 70:
             return
 
         filename = detection_result.get("video_filename", "Unknown")

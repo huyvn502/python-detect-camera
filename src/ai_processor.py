@@ -196,48 +196,53 @@ Important:
         Returns:
             Formatted prompt string
         """
-        return """You are analyzing security footage to detect ANY human bodies/figures.
+        return """You are analyzing infrared security footage from a house entrance camera.
 
-Task: Detect if there are ANY human figures/shadows in this video frame.
+SCENE DESCRIPTION:
+This camera overlooks the front of a house. Key landmarks:
+- LEFT SIDE: A narrow passage/corridor between a house wall and a metal mesh fence
+- CENTER-LEFT: A **bright glowing plant/bush** (appears white in infrared) - this is the KEY LANDMARK
+- RIGHT SIDE: Metal mesh fence and open area with some storage items
 
-What to LOOK FOR (Human Features):
-- Head shape (rounded or oval)
-- Shoulders (horizontal line at top of torso)
-- Torso (vertical body section)
-- Arms (extending from shoulders)
-- Legs (two vertical supports at bottom)
-- Overall human proportions (height > width typically)
-- Human postures (standing, walking, sitting, crouching)
+TARGET DETECTION ZONE (HIGH PRIORITY):
+You are specifically monitoring the **narrow passage on the LEFT side of the frame**, which runs:
+- From the top of the frame down to where the bright plant is located
+- Between the house wall (left edge) and the metal fence (center)
+- This is where intruders would walk to approach the house entrance
+
+What to DETECT:
+- ANY human figure, silhouette, or shadow in or near the narrow passage
+- Humans appearing **around, next to, behind, or near the bright glowing plant**
+- Dark human-shaped silhouettes (typical in infrared/night vision)
+- Human body parts: head, shoulders, torso, limbs
+- Humans in any posture: standing, walking, crouching, hiding
 
 What to IGNORE:
-- Objects that aren't human-shaped
-- Animals
-- Background elements (walls, furniture, plants)
-- Shadows that don't clearly show human form
+- The bright glowing plant itself (it's vegetation, not human)
+- Animals (cats, dogs, birds)
+- Static objects (furniture, containers, wires, poles)
+- Vague shadows without clear human form
+- Activity on the far right side of frame (outside the main path)
 
 Detection Rules:
-1. FOCUS ON CENTER: Focus your analysis on the central 60% of the frame (about 6/10ths of the width and height).
-2. HIGH PRIORITY LANDMARK: There is a **prominent bright/glowing plant or bush** in the frame. You are specifically looking for human silhouettes appearing **around, next to, or behind this bright plant**.
-3. IGNORE MARGINS: Figures at the extreme edges of the frame should be treated with lower priority or ignored unless they move towards the center.
-4. IGNORE DISTANT: Do not detect very small or distant figures that appear as tiny specs (figures should be at least 10% of frame height).
-5. Return match=true if you see ANY clear human figure/shadow in the priority zone or near the landmark.
-6. Focus on body structure: head → shoulders → torso → legs.
-7. Low-light/infrared footage shows humans as dark silhouettes.
-8. Multi-person detection is supported (any human counts).
+1. PRIORITY: Focus analysis on the narrow passage (left portion) and area around the bright plant
+2. A human silhouette typically shows: rounded head, shoulder line, vertical torso
+3. Confidence 80%+ = Clear human shape visible
+4. Confidence 60-79% = Possible human, shape is ambiguous
+5. Confidence < 60% = Unlikely to be human
 
 Response Format (JSON only):
 {
   "match": true or false,
-  "confidence": 0-100 (integer percentage),
-  "reasoning": "brief explanation of what human features you see or why no human detected (in English)",
-  "reasoning_vi": "Vietnamese translation of the reasoning above"
+  "confidence": 0-100 (integer),
+  "reasoning": "describe what you see - location relative to the bright plant, human features detected (in English)",
+  "reasoning_vi": "Vietnamese translation of the reasoning"
 }
 
 Important:
-- Return true if you see ANY human body/shadow
-- Confidence above 70% means you're certain it's a human
-- Provide BOTH English (reasoning) and Vietnamese (reasoning_vi) explanations
-- Return ONLY valid JSON, no other text"""
+- Return ONLY valid JSON
+- Provide BOTH English and Vietnamese reasoning
+- Be specific about WHERE in the frame you see the human (e.g., "left of the bright plant", "in the narrow passage")"""
 
     
     def _parse_response(self, response_text: str, video_filename: str, timestamp: str) -> Dict[str, Any]:
