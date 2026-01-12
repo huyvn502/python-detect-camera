@@ -208,6 +208,34 @@ class TelegramNotifier(BaseNotifier):
         except Exception as e:
             print(f"[Telegram] Error sending message: {e}")
     
+    def _send_photo_sync(self, photo_path: str, caption: str):
+        """Send photo with caption synchronously."""
+        import os
+        import asyncio
+        
+        # Telegram caption limit is 1024 characters
+        if len(caption) > 1024:
+            caption = caption[:1020] + "..."
+        
+        print(f"[Telegram] Sending photo: {photo_path} (exists: {os.path.exists(photo_path)})")
+        
+        async def _send():
+            with open(photo_path, 'rb') as photo:
+                await self.bot.send_photo(
+                    chat_id=self.chat_id,
+                    photo=photo,
+                    caption=caption,
+                    parse_mode='Markdown'
+                )
+        
+        try:
+            asyncio.run(_send())
+            print(f"[Telegram] Photo sent successfully!")
+        except Exception as e:
+            print(f"[Telegram] Error sending photo: {e}")
+            # Fallback to sending text only if photo fails
+            self._send_message_sync(caption)
+    
     def send(self, detection_result: Dict[str, Any]):
         """Send a real-time detection alert with bilingual reasoning via Telegram."""
         if not detection_result.get("match", False):
@@ -219,6 +247,10 @@ class TelegramNotifier(BaseNotifier):
         confidence = detection_result.get("confidence", 0)
         reasoning = detection_result.get("reasoning", "No reasoning provided")
         reasoning_vi = detection_result.get("reasoning_vi", "")
+        frame_image_path = detection_result.get("frame_image_path", "")
+        
+        # Debug: show what we received
+        print(f"[Telegram] frame_image_path = '{frame_image_path}'")
 
         message = "🎯 *DETECTION ALERT*\n"
         message += "━━━━━━━━━━━━━━━━━━━━\n"
@@ -234,7 +266,14 @@ class TelegramNotifier(BaseNotifier):
         if reasoning_vi:
             message += f"🇻🇳 *Chi tiết:* {reasoning_vi}\n"
         
-        self._send_message_sync(message)
+        # Send photo with caption if frame image is available
+        import os
+        if frame_image_path and os.path.exists(frame_image_path):
+            print(f"[Telegram] Attempting to send photo...")
+            self._send_photo_sync(frame_image_path, message)
+        else:
+            print(f"[Telegram] No image or file not found, sending text only")
+            self._send_message_sync(message)
     
     def send_summary(self, summary: Dict[str, Any]):
         """Send a concise summary of all detections via Telegram (no reasoning)."""

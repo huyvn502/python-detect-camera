@@ -128,11 +128,8 @@ class AIProcessor:
             except:
                 pass  # Ignore cleanup errors
             
-            # Clean up temporary frame file
-            try:
-                os.remove(frame_path)
-            except:
-                pass
+            # Note: Do NOT delete the temp frame file here - it's needed for notifications
+            # The caller (main.py) is responsible for cleanup after notifications are sent
             
             return result
             

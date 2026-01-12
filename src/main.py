@@ -162,6 +162,10 @@ def process_videos(
                 if result and camera_timestamp:
                     result["camera_timestamp"] = camera_timestamp
                 
+                # Add frame image path for Telegram notifications
+                if result:
+                    result["frame_image_path"] = temp_frame_path
+                
                 if result:
                     # Check if it's a match above threshold
                     if result.get("match") and result.get("confidence", 0) >= confidence_threshold:
@@ -169,6 +173,14 @@ def process_videos(
                     
                     # Notify
                     notifier.send(result)
+                
+                # Clean up temp frame file after notification
+                try:
+                    import os
+                    if os.path.exists(temp_frame_path):
+                        os.remove(temp_frame_path)
+                except:
+                    pass
         
         except Exception as e:
             print(f"   ⚠️  Error processing video: {e}")
